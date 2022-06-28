@@ -2,6 +2,7 @@ import hlt
 import logging
 from collections import OrderedDict
 import math
+import heapq
 
 from hlt.entity import Planet
 
@@ -53,50 +54,86 @@ def get_cell_neighbours(x: int, y: int, width, height):
 
 def create_costs_map(start_x, start_y, map_width, map_height):
     costs_map = [[0 for x in range(map_width)] for y in range(map_height)]
-    costs_map[start_y][start_x] = 1
 
-    cells = [(start_x, start_y)]  # Liste mit Zellen, dessen Nachbarn noch abgearbeitet werden müssen
+    for y in range(map_height):
+        for x in range(map_width):
+            distance = math.sqrt(
+                math.pow(x - start_x, 2) +
+                math.pow(y - start_y, 2)
+            )
 
-    list_index = 0
-    while list_index < len(cells):
-        cell_x, cell_y = cells[list_index]
-        neighbours = get_cell_neighbours(cell_x, cell_y, map_width, map_height)
+            costs = math.ceil(distance)
 
-        for (neighbour_x, neighbour_y) in neighbours:
-
-            # Prüfen, ob die Zelle bereits einen Kostenwert hat
-            if costs_map[neighbour_y][neighbour_x] > 0:
-                list_index += 1
-                continue
-
-            # Prüfen, ob in der Zelle ein Planet ist
-            if path_map[neighbour_y][neighbour_x] == 1:
-                costs_map[neighbour_y][neighbour_x] = -1
-                cells.extend(get_cell_neighbours(neighbour_x, neighbour_y, map_width, map_height))
-                list_index += 1
-                continue
-
-            # Kosten für diese Zelle berechnen und setzen, sowie neue Nachbarn zu Liste hinzufügen
-            costs = costs_map[cell_y][cell_x]
-            costs_map[neighbour_y][neighbour_x] = costs + 1
-
-            next_neighbours = get_cell_neighbours(neighbour_x, neighbour_y, map_width, map_height)
-
-            # for (next_neighbour_x, next_neighbour_y) in next_neighbours:
-            #     cells.append((next_neighbour_x, next_neighbour_y))
-            cells.extend(next_neighbours)
-            list_index += 1
-
-            if list_index % 1000 == 0:
-                for row in costs_map:
-                    logging.info(row)
-
-                logging.info("")
-                logging.info("")
-                logging.info("")
-                logging.info("")
+            costs_map[y][x] = costs
 
     return costs_map
+
+
+def a_star(start_x, start_y, goal_x, goal_y):
+    map_width, map_height = game.initial_map.width, game.initial_map.height
+    costs_map = create_costs_map(start_x, start_y, map_width, map_height)
+    start = (start_x, start_y)
+    goal = (goal_x, goal_y)
+
+    for row in costs_map:
+        logging.info(row)
+    logging.info("")
+    logging.info("")
+    logging.info("")
+    logging.info("")
+
+    frontier = []
+    came_from = dict()
+    cost_so_far = dict()
+
+    # Startwert hinzuzufügen
+    heapq.heappush(frontier, (0, start))
+    came_from[start] = None
+    cost_so_far[start] = 0
+
+    # solange frontier nicht leer ist, wird eine Route gesucht
+    while frontier:
+        (priority, (current_node_x, current_node_y)) = heapq.heappop(frontier)
+        current_node = (current_node_x, current_node_y)
+
+        if current_node == goal:
+            break
+
+        for (next_node_x, next_node_y) in get_cell_neighbours(current_node_x, current_node_y, map_width, map_height):
+            next_node = (next_node_x, next_node_y)
+
+            # prüfen, ob Nachbar kein Planet ist
+            if path_map[next_node_y][next_node_x] == 1:
+                continue
+
+            # Kosten für diese Zelle berechnen
+            cell_costs = costs_map[next_node_y][next_node_x]
+            path_costs = cost_so_far[current_node] + cell_costs
+
+            # wenn dieser Pfad zu der Zelle der günstigste zu dieser ist
+            if next_node not in cost_so_far or path_costs < cost_so_far[next_node]:
+                cost_so_far[next_node] = path_costs
+                priority = path_costs
+
+                next_node_heap = (priority, next_node)
+
+                heapq.heappush(frontier, next_node_heap)
+                came_from[next_node] = current_node
+
+    cell = goal
+    path = [goal]
+
+    while cell is not start:
+        predecessor = came_from[cell]
+
+        if predecessor is None:
+            break
+
+        path.append(predecessor)
+        cell = predecessor
+
+    path.reverse()
+    logging.info(path)
 
 
 def initialize_map(width: int, height: int, planets: list[Planet]):
@@ -112,9 +149,6 @@ def initialize_map(width: int, height: int, planets: list[Planet]):
 
                 if math.pow(x - planet_x, 2) + math.pow(y - planet_y, 2) < math.pow(planet_r, 2):
                     path_map[y][x] = 1
-
-    # for row in path_map:
-    #     logging.info(row)
 
 
 def fly_to(ship: hlt.entity.Ship, object: hlt.entity):
@@ -139,10 +173,7 @@ while True:
 
     if path_map is None:
         initialize_map(game_map.width, game_map.height, game_map.all_planets())
-        costs_map = create_costs_map(20, 50, game_map.width, game_map.height)
-
-        for row in costs_map:
-            logging.info(row)
+        a_star(5, 5, game_map.width-5, game_map.height-5)
     
     for ship in game_map.get_me().all_ships():
         ship: hlt.entity.Ship
