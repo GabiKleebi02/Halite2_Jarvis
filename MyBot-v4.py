@@ -11,7 +11,7 @@ pathfinder = None
 
 # function to calculate if a Point p is in a line specified by two Points a and b
 # @params: a, b     -   two points specifying a line
-#           c       -   a Point tested if on the line
+#           p       -   a Point tested if on the line
 # @return: boolean  -   True, if point is on the line, False otherwise
 def isInLine(a, b, p):
     v = hlt.entity.Position(0, 0)
@@ -37,6 +37,25 @@ def isInLine(a, b, p):
         v.y = m * v.x + c                                      # y-Wert des Schnittpunktes
         dist = math.sqrt((p.x - v.x) ** 2 + (p.y - v.y) ** 2)  # Abstand der Punkte p und v (und damit zu g)
         return dist < 0.7  # Gebe True zurück, wenn der Abstand von p zu g kleiner als die Hälfte von Wurzel 2 ist
+
+
+# function to calculate if a Point p is in a rectangle specified by two opposite points a and b
+# @params: a, b     -   two points specifying a rectangle
+#           p       -   a Point tested if on the line
+# @return: boolean  -   True, if point is inside or on the edge of the rectangle, False otherwise
+def isBetween(a, b, p):
+    # x-value of a is closer to origin than x-value of b
+    if a.x < b.x:
+        result_x = a.x <= p.x <= b.x
+    else:
+        result_x = b.x <= p.x <= a.x
+    # y-value of a is closer to origin than y-value of b
+    if a.y < b.y:
+        result_y = a.y <= p.y <= b.y
+    else:
+        result_y = b.y <= p.y <= a.y
+    # both results must be true to have point p inside the rectangle
+    return result_x and result_y
 
 
 def fly_to_point(ship: hlt.entity.Ship, point: (int, int)):
