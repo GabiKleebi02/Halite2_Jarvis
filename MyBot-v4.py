@@ -2,11 +2,25 @@ import hlt
 import logging
 from collections import OrderedDict
 import math
-from astar import AStar
+from astar import AStar, Point
 
 game = hlt.Game("Jarvis-v4")
 logging.info("Starting my Jarvis bot")
 pathfinder = None
+
+
+def fly_to_point(ship: hlt.entity.Ship, point: (int, int)):
+    target = hlt.entity.Position(point[0], point[1])
+
+    navigate_command = ship.navigate(
+        target=target,
+        game_map=game_map,
+        speed=int(hlt.constants.MAX_SPEED),
+        ignore_ships=False
+    )
+
+    if navigate_command:
+        command_queue.append(navigate_command)
 
 
 def fly_to(ship: hlt.entity.Ship, object: hlt.entity):
@@ -22,6 +36,10 @@ def fly_to(ship: hlt.entity.Ship, object: hlt.entity):
     else:
         return None
 
+
+
+paths_for_ships = {}
+    
 
 while True:
     game_map = game.update_map()
@@ -65,8 +83,22 @@ while True:
                         target_planet = possible_planet
                         break
 
-            if ship.can_dock(target_planet): command_queue.append(ship.dock(target_planet))
-            else: fly_to(ship, target_planet)
+            if ship.can_dock(target_planet):
+                command_queue.append(ship.dock(target_planet))
+                paths_for_ships.pop(ship.id, None)
+            else:
+                path = paths_for_ships.get(ship.id, None)
+                
+                if not path:
+                    logging.info(f"ship with id {int(ship.id)} needs new path")
+                    point_x = target_planet.x + (target_planet.radius + 2) * math.cos(ship.calculate_angle_between(target_planet))
+                    point_y = target_planet.y + (target_planet.radius + 2) * math.sin(ship.calculate_angle_between(target_planet))
+
+                    path = pathfinder.find_path(int(ship.x), int(ship.y), int(point_x), int(point_y))
+                    paths_for_ships.update({ship.id: path})
+                
+                fly_to_point(ship, path.pop(0))
+
             planned_planets.append(target_planet) # ausgewählten Planeten zur Liste der Planeten, die angeflogen werden, hinzufügen
 
         else:  # Schiffe angreifen und die Planeten einnehmen
