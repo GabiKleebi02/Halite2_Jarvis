@@ -9,6 +9,36 @@ logging.info("Starting my Jarvis bot")
 pathfinder = None
 
 
+# function to calculate if a Point p is in a line specified by two Points a and b
+# @params: a, b     -   two points specifying a line
+#           c       -   a Point tested if on the line
+# @return: boolean  -   True, if point is on the line, False otherwise
+def isInLine(a, b, p):
+    v = hlt.entity.Position(0, 0)
+
+    # Falls x-Werte gleich:
+    if b.x == a.x:
+        if b.y == a.y:
+            logging.info(f"Die Punkte {a} und {b} sind verbotenerweise identisch!")
+            print(f"Die Punkte {a} und {b} sind verbotenerweise identisch!")
+        return abs(p.x - a.x) < 0.5
+
+    # Falls nur y-Werte gleich:
+    if b.y == a.y:
+        return abs(p.y - a.y) < 0.5
+
+    # Ansonsten finde den Schnittpunkt v der Geraden g und der Normalen zu g durch den Punkt p
+    else:
+        m = (b.y - a.y) / (b.x - a.x)                          # Steigung der Geraden g
+        c = ((a.y * b.x) - (b.y * a.x)) / (b.x - a.x)          # Y-Achsenabschnitt von g
+        n = -1 / m                                             # Steigung der Normalen zu g
+        d = p.y - n * p.x                                      # Y-Achsenschnittpunkt der Normalen
+        v.x = (d - c) / (m - n)                                # x-Wert des Schnittpunktes
+        v.y = m * v.x + c                                      # y-Wert des Schnittpunktes
+        dist = math.sqrt((p.x - v.x) ** 2 + (p.y - v.y) ** 2)  # Abstand der Punkte p und v (und damit zu g)
+        return dist < 0.7  # Gebe True zurück, wenn der Abstand von p zu g kleiner als die Hälfte von Wurzel 1 ist
+
+
 def fly_to_point(ship: hlt.entity.Ship, point: (int, int)):
     target = hlt.entity.Position(point[0], point[1])
 
