@@ -32,11 +32,11 @@ def isInLine(a, b, p):
         m = (b.y - a.y) / (b.x - a.x)                          # Steigung der Geraden g
         c = ((a.y * b.x) - (b.y * a.x)) / (b.x - a.x)          # Y-Achsenabschnitt von g
         n = -1 / m                                             # Steigung der Normalen zu g
-        d = p.y - n * p.x                                      # Y-Achsenschnittpunkt der Normalen
+        d = p.y - n * p.x                                      # Y-Achsenschnittpunkt der Normalen durch den Punkt p
         v.x = (d - c) / (m - n)                                # x-Wert des Schnittpunktes
         v.y = m * v.x + c                                      # y-Wert des Schnittpunktes
         dist = math.sqrt((p.x - v.x) ** 2 + (p.y - v.y) ** 2)  # Abstand der Punkte p und v (und damit zu g)
-        return dist < 0.7  # Gebe True zurück, wenn der Abstand von p zu g kleiner als die Hälfte von Wurzel 1 ist
+        return dist < 0.7  # Gebe True zurück, wenn der Abstand von p zu g kleiner als die Hälfte von Wurzel 2 ist
 
 
 def fly_to_point(ship: hlt.entity.Ship, point: (int, int)):
