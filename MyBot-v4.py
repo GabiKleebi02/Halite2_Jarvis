@@ -2,60 +2,11 @@ import hlt
 import logging
 from collections import OrderedDict
 import math
-from astar import AStar, Point
+from astar import AStar
 
 game = hlt.Game("Jarvis-v4")
 logging.info("Starting my Jarvis bot")
 pathfinder = None
-
-
-# function to calculate if a Point p is in a line specified by two Points a and b
-# @params: a, b     -   two points specifying a line
-#           p       -   a Point tested if on the line
-# @return: boolean  -   True, if point is on the line, False otherwise
-def isInLine(a, b, p):
-    v = hlt.entity.Position(0, 0)
-
-    # Falls x-Werte gleich:
-    if b.x == a.x:
-        if b.y == a.y:
-            logging.info(f"Die Punkte {a} und {b} sind verbotenerweise identisch!")
-            print(f"Die Punkte {a} und {b} sind verbotenerweise identisch!")
-        return abs(p.x - a.x) < 0.5
-
-    # Falls nur y-Werte gleich:
-    if b.y == a.y:
-        return abs(p.y - a.y) < 0.5
-
-    # Ansonsten finde den Schnittpunkt v der Geraden g und der Normalen zu g durch den Punkt p
-    else:
-        m = (b.y - a.y) / (b.x - a.x)                          # Steigung der Geraden g
-        c = ((a.y * b.x) - (b.y * a.x)) / (b.x - a.x)          # Y-Achsenabschnitt von g
-        n = -1 / m                                             # Steigung der Normalen zu g
-        d = p.y - n * p.x                                      # Y-Achsenschnittpunkt der Normalen durch den Punkt p
-        v.x = (d - c) / (m - n)                                # x-Wert des Schnittpunktes
-        v.y = m * v.x + c                                      # y-Wert des Schnittpunktes
-        dist = math.sqrt((p.x - v.x) ** 2 + (p.y - v.y) ** 2)  # Abstand der Punkte p und v (und damit zu g)
-        return dist < 0.7  # Gebe True zurück, wenn der Abstand von p zu g kleiner als die Hälfte von Wurzel 2 ist
-
-
-# function to calculate if a Point p is in a rectangle specified by two opposite points a and b
-# @params: a, b     -   two points specifying a rectangle
-#           p       -   a Point tested if on the line
-# @return: boolean  -   True, if point is inside or on the edge of the rectangle, False otherwise
-def isBetween(a, b, p):
-    # x-value of a is closer to origin than x-value of b
-    if a.x < b.x:
-        result_x = a.x <= p.x <= b.x
-    else:
-        result_x = b.x <= p.x <= a.x
-    # y-value of a is closer to origin than y-value of b
-    if a.y < b.y:
-        result_y = a.y <= p.y <= b.y
-    else:
-        result_y = b.y <= p.y <= a.y
-    # both results must be true to have point p inside the rectangle
-    return result_x and result_y
 
 
 def fly_to_point(ship: hlt.entity.Ship, point: (int, int)):
