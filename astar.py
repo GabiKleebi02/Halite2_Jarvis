@@ -1,4 +1,5 @@
 import heapq
+import logging
 import math
 
 from hlt.entity import Position
@@ -78,6 +79,78 @@ class AStar:
 
         return neighbours
 
+    # function to calculate if a Point p is in a line specified by two Points a and b
+    # @params: a, b     -   two points specifying a line
+    #           p       -   a Point tested if on the line
+    # @return: boolean  -   True, if point is on the line, False otherwise
+    @staticmethod
+    def _is_in_line(a: Position, b: Position, p: Position):
+        poi = Position(0, 0)  # point of intersection
+
+        # Falls x-Werte gleich:
+        if b.x == a.x:
+            if b.y == a.y:
+                logging.info(f"Die Punkte {a} und {b} sind verbotenerweise identisch!")
+            return abs(p.x - a.x) <= 1.1
+        # Falls nur y-Werte gleich:
+        if b.y == a.y:
+            return abs(p.y - a.y) <= 1.1
+
+        # Ansonsten finde den Schnittpunkt v der Geraden g und der Normalen zu g durch den Punkt p
+        else:
+            m = (b.y - a.y) / (b.x - a.x)  # Steigung der Geraden g
+            c = ((a.y * b.x) - (b.y * a.x)) / (b.x - a.x)  # Y-Achsenabschnitt von g
+            n = -1 / m  # Steigung der Normalen zu g
+            d = p.y - n * p.x  # Y-Achsenschnittpunkt der Normalen durch den Punkt p
+            poi.x = (d - c) / (m - n)  # x-Wert des Schnittpunktes
+            poi.y = m * poi.x + c  # y-Wert des Schnittpunktes
+            dist = math.sqrt((p.x - poi.x) ** 2 + (p.y - poi.y) ** 2)  # Abstand der Punkte p und v (und damit zu g)
+            return dist < 0.8  # Berücksichtige alle Punkte innerhalb eines Bandes der Breite 1,6, also 0,8 der Mitte
+
+    # function to calculate if a Point p is in a rectangle specified by two opposite points a and b
+    # @params: a, b     -   two points specifying a rectangle
+    #           p       -   a Point tested if on the line
+    # @return: boolean  -   True, if point is inside or on the edge of the rectangle, False otherwise
+    @staticmethod
+    def _is_between(a: Position, b: Position, p: Position):
+        # x-value of 'a' is closer to origin than x-value of 'b'
+        if a.x < b.x:
+            result_x = a.x <= p.x <= b.x
+        else:
+            result_x = b.x <= p.x <= a.x
+        # y-value of 'a' is closer to origin than y-value of 'b'
+        if a.y < b.y:
+            result_y = a.y <= p.y <= b.y
+        else:
+            result_y = b.y <= p.y <= a.y
+        # both results must be true to have point 'p' inside the rectangle
+        return result_x and result_y
+
+    def _shorten_path(self, path: [(int, int)]):
+        if len(path) < 3:
+            return path
+
+        start_point, end_point = Position(path[0][0], path[0][1]), Position(path[1][0], path[1][1])
+        shortened_path = [(start_point.x, start_point.y)]
+
+        for i in range(2, len(path)):
+            point_to_check = path[i]
+            position = Position(x=point_to_check[0], y=point_to_check[1])
+
+            # Prüfen, ob der Punkt auf der Strecke liegt
+            if self._is_in_line(start_point, end_point, position):
+                # Neuen Endpunkt der derzeitigen Strecke setzen
+                end_point = position
+                continue
+
+            # Punkt lag nicht auf der Strecke
+            end_point = position
+            shortened_path.append((end_point.x, end_point.y))
+
+        shortened_path.append((end_point.x, end_point.y))
+
+        return shortened_path
+
     def find_path(self, start_x: int, start_y: int, goal_x: int, goal_y: int):
         costs_map = self._create_cost_map(start_x, start_y, goal_x, goal_y)
         start = (start_x, start_y)
@@ -135,53 +208,6 @@ class AStar:
 
         # Pfad umdrehen, damit er vom Start zum Ziel geht
         path.reverse()
+        path = self._shorten_path(path)
 
         return path
-
-    # function to calculate if a Point p is in a line specified by two Points a and b
-    # @params: a, b     -   two points specifying a line
-    #           p       -   a Point tested if on the line
-    # @return: boolean  -   True, if point is on the line, False otherwise
-    @staticmethod
-    def isInLine(a: Position, b: Position, p: Position):
-        poi = Position(0, 0)  # point of intersection
-
-        # Falls x-Werte gleich:
-        if b.x == a.x:
-            if b.y == a.y:
-                print(f"Die Punkte {a} und {b} sind verbotenerweise identisch!")
-            return abs(p.x - a.x) < 0.5
-
-        # Falls nur y-Werte gleich:
-        if b.y == a.y:
-            return abs(p.y - a.y) < 0.5
-
-        # Ansonsten finde den Schnittpunkt v der Geraden g und der Normalen zu g durch den Punkt p
-        else:
-            m = (b.y - a.y) / (b.x - a.x)  # Steigung der Geraden g
-            c = ((a.y * b.x) - (b.y * a.x)) / (b.x - a.x)  # Y-Achsenabschnitt von g
-            n = -1 / m  # Steigung der Normalen zu g
-            d = p.y - n * p.x  # Y-Achsenschnittpunkt der Normalen durch den Punkt p
-            poi.x = (d - c) / (m - n)  # x-Wert des Schnittpunktes
-            poi.y = m * poi.x + c  # y-Wert des Schnittpunktes
-            dist = math.sqrt((p.x - poi.x) ** 2 + (p.y - poi.y) ** 2)  # Abstand der Punkte p und v (und damit zu g)
-            return dist < 0.8  # Berücksichtige alle Punkte innerhalb eines Bandes der Breite 1,6, also 0,8 der Mitte
-
-    # function to calculate if a Point p is in a rectangle specified by two opposite points a and b
-    # @params: a, b     -   two points specifying a rectangle
-    #           p       -   a Point tested if on the line
-    # @return: boolean  -   True, if point is inside or on the edge of the rectangle, False otherwise
-    @staticmethod
-    def isBetween(a: Position, b: Position, p: Position):
-        # x-value of 'a' is closer to origin than x-value of 'b'
-        if a.x < b.x:
-            result_x = a.x <= p.x <= b.x
-        else:
-            result_x = b.x <= p.x <= a.x
-        # y-value of 'a' is closer to origin than y-value of 'b'
-        if a.y < b.y:
-            result_y = a.y <= p.y <= b.y
-        else:
-            result_y = b.y <= p.y <= a.y
-        # both results must be true to have point 'p' inside the rectangle
-        return result_x and result_y
