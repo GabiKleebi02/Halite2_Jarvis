@@ -146,6 +146,7 @@ class AStar:
             # Punkt lag nicht auf der Strecke
             end_point = position
             shortened_path.append((end_point.x, end_point.y))
+            start_point = end_point
 
         shortened_path.append((end_point.x, end_point.y))
 
